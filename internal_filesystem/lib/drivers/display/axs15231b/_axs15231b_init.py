@@ -35,7 +35,7 @@ def init(self):
         (0xBB, bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])),
         (0x13, None),       # Normal Display Mode On
         (0x11, None),       # Sleep Out
-        (None, 120),        # 120ms delay
+        (None, 120),        # 120ms delay after Sleep Out
         (0x2C, bytes([0x00, 0x00, 0x00, 0x00])),  # Memory Write
     ]
 

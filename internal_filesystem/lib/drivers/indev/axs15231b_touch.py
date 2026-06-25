@@ -40,15 +40,15 @@ class AXS15231BTouch(pointer_framework.PointerDriver):
         except Exception:
             return None
 
-        if self._buf[0] == 0xFF:
+        if self._rx_buf[0] == 0xFF:
             return None
-        num = self._buf[1]
+        num = self._rx_buf[1]
         if num == 0 or num > 2:
             return None
-        if self._buf[3] < 2 or self._buf[5] < 2:
+        if self._rx_buf[3] < 2 or self._rx_buf[5] < 2:
             return None
 
-        x = ((self._buf[2] & 0x0F) << 8) | self._buf[3]
-        y = ((self._buf[4] & 0x0F) << 8) | self._buf[5]
+        x = ((self._rx_buf[2] & 0x0F) << 8) | self._rx_buf[3]
+        y = ((self._rx_buf[4] & 0x0F) << 8) | self._rx_buf[5]
 
         return self.PRESSED, x, y

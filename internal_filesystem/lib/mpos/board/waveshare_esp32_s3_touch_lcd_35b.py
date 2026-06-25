@@ -17,6 +17,7 @@ import i2c
 
 import mpos.ui
 from mpos import InputManager, BatteryManager, SensorManager, CameraManager
+from machine import Pin, SPI
 
 WIDTH = const(320)
 HEIGHT = const(480)
@@ -24,7 +25,7 @@ HEIGHT = const(480)
 # --- I2C Bus (shared by touch, PMU, IMU, RTC, audio, IO expander) ---
 # SDA=8, SCL=7, 400kHz Fast Mode
 if __debug__: logger.debug("Initializing I2C bus on SDA=8, SCL=7")
-machine_i2c = machine.I2C(0, sda=machine.Pin(8), scl=machine.Pin(7), freq=400000)
+machine_i2c = machine.I2C(0, sda=Pin(8), scl=Pin(7), freq=400000)
 
 # i2c.I2C.Bus is required by the touch driver (i2c.I2C.Device).
 # We create it then override _bus with the machine.I2C instance to avoid an IDF
@@ -35,10 +36,7 @@ i2c_bus._bus = machine_i2c
 # --- IO Expander TCA9554 (address 0x20) - display reset via pin 1 ---
 if __debug__: logger.debug("Resetting display via TCA9554 pin 1")
 try:
-    # TCA9554 register: 0x06 = configuration (0 = output, 1 = input)
     machine_i2c.writeto_mem(0x20, 0x06, bytes([0xFD]))  # pin 1 = output
-    # TCA9554 register: 0x02 = output port
-    # Reset sequence: HIGH -> LOW -> HIGH
     machine_i2c.writeto_mem(0x20, 0x02, bytes([0x02]))  # pin 1 HIGH
     time.sleep_ms(10)
     machine_i2c.writeto_mem(0x20, 0x02, bytes([0x00]))  # pin 1 LOW
@@ -48,7 +46,7 @@ try:
 except Exception as e:
     logger.warning("TCA9554 display reset failed: %s", e)
 
-# --- Display: AXS15231B via QSPI ---
+# --- Display: AXS15231B via QSPI (SPI2_HOST=1, pins 1/2/3/5 have IOMUX) ---
 if __debug__: logger.debug("Initializing QSPI display bus")
 _BL_PIN = const(6)
 _CS = const(12)
@@ -58,15 +56,18 @@ _D1 = const(2)
 _D2 = const(3)
 _D3 = const(4)
 
-display_bus = lcd_bus.QSPIBus(
-    host=2,
-    cs=_CS,
+spi_bus = SPI.Bus(
+    host=1,
     sck=_SCLK,
-    d0=_D0,
-    d1=_D1,
-    d2=_D2,
-    d3=_D3,
-    freq=40000000
+    quad_pins=(_D0, _D1, _D2, _D3),
+)
+
+display_bus = lcd_bus.SPIBus(
+    spi_bus=spi_bus,
+    dc=-1,
+    cs=_CS,
+    freq=40000000,
+    quad=True,
 )
 
 _BUFFER_SIZE = const(WIDTH * 45 * 2)
